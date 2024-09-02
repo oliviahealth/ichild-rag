@@ -40,7 +40,10 @@ def appRoute():
 
     Must specify knowledge base path (kb_path), collection name (collection_name) and database uri (database_uri)
 
-    Return 200 OK on success
+    Returns 200 OK on success
+
+    Note: This function calls OpenAIEmbeddings() which costs money to run and can be fairly expensive so try to limit this operation.
+          Ideally, the vector database should only need to be loaded initially and whenever we have new data
     '''
 
     kb_path = "./knowledge_base/"
