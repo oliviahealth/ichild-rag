@@ -1,10 +1,12 @@
 import os
 import glob
+from datetime import datetime
 
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.document_loaders import TextLoader
 from langchain_postgres import PGVector
 from langchain_postgres.vectorstores import PGVector
+from langchain.embeddings import OpenAIEmbeddings
 
 def load_kb(embeddings_model, documents_path, collection_name, database_uri):
     '''
@@ -43,3 +45,13 @@ def load_kb(embeddings_model, documents_path, collection_name, database_uri):
             print(f"Processed {file_path}")
         except Exception as e:
             print(f"Error processing {file_path}: {e}")
+
+kb_path = "./knowledge_base/"
+collection_name = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+database_uri = os.getenv("DATABASE_URI")
+
+# Using OpenAI embeddings for now
+openai_api_key = os.getenv("OPENAI_API_KEY")
+embeddings_model = OpenAIEmbeddings(openai_api_key=openai_api_key)
+
+load_kb(embeddings_model=embeddings_model, documents_path=kb_path, collection_name=collection_name, database_uri=database_uri)
