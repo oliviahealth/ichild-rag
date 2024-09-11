@@ -6,11 +6,12 @@ from dotenv import load_dotenv
 import psycopg2
 
 import langchain
+from langchain import LLMChain
 from langchain.chat_models import ChatOpenAI
 
 from embeddings.openai import openai_embeddings
 from vector_stores.pgvector import build_pg_vector_store
-from chains.retrieval_qa_chain import build_retrieval_qa_chain
+from chains.conversational_retrieval_chain_with_memory import build_conversational_retrieval_chain_with_memory
 
 CORS()
 load_dotenv()
@@ -39,8 +40,8 @@ llm = ChatOpenAI()
 def hello_world():
     return "<p>Hello, World!</p>"
 
-@app.route("/test")
-def test():
+@app.route("/search")
+def search():
     '''
     Example of basic RAG functionality. Route will take in a user query and pass it to a RetrievalQAChain.
 
@@ -48,8 +49,8 @@ def test():
     '''
     search_query = request.args.get("query")
 
-    retrieval_qa_chain = build_retrieval_qa_chain(llm, pg_vector_retriever)
+    retrieval_qa_chain = build_conversational_retrieval_chain_with_memory(llm, pg_vector_retriever)
 
     result = retrieval_qa_chain.run(search_query)
-    
+
     return result
