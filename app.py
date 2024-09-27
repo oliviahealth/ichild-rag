@@ -8,16 +8,11 @@ import langchain
 from langchain import LLMChain
 from langchain.chat_models import ChatOpenAI
 
-from typing import List
-from langchain_core.documents import Document
-from langchain_core.callbacks import CallbackManagerForRetrieverRun
-from langchain_core.retrievers import BaseRetriever
-from psycopg2 import connect
-
 from embeddings.openai import openai_embeddings
 from vector_stores.pgvector import build_pg_vector_store
 from chains.conversational_retrieval_chain_with_memory import build_conversational_retrieval_chain_with_memory
-from database.database import db, Location
+from database.database import db
+from retrievers.LocationRetriever import build_column_retriever
 
 load_dotenv()
 
@@ -45,48 +40,6 @@ collection_name = "2024-09-02 00:44:49"
 pg_vector_store = build_pg_vector_store(embeddings_model=openai_embeddings, collection_name=collection_name, connection_uri=database_uri)
 pg_vector_retriever = pg_vector_store.as_retriever(search_type="mmr")
 
-def fetch_documents_from_db() -> list:
-    """Fetch descriptions from the locations table and convert them into Document objects."""
-    
-    locations = Location.query.all()
-        
-    # Step 3: Convert each description into a Document object
-    documents = [
-        Document(page_content=loc.description, metadata={"name": loc.name, "address": loc.address},) for loc in locations
-    ]
-    
-    return documents
-
-class ToyRetriever(BaseRetriever):
-    """A toy retriever that contains the top k documents that contain the user query.
-
-    This retriever only implements the sync method _get_relevant_documents.
-
-    If the retriever were to involve file access or network access, it could benefit
-    from a native async implementation of `_aget_relevant_documents`.
-
-    As usual, with Runnables, there's a default async implementation that's provided
-    that delegates to the sync implementation running on another thread.
-    """
-
-    documents: List[Document]
-    """List of documents to retrieve from."""
-    k: int
-    """Number of top results to return"""
-
-    def _get_relevant_documents(
-        self, query: str, *, run_manager: CallbackManagerForRetrieverRun
-    ) -> List[Document]:
-        """Sync implementations for retriever."""
-        matching_documents = []
-        for document in self.documents:
-            if len(matching_documents) > self.k:
-                return matching_documents
-
-            if query.lower() in document.page_content.lower():
-                matching_documents.append(document)
-        return matching_documents
-    
 # Using OpenAI for LLM
 llm = ChatOpenAI()
 
@@ -112,20 +65,17 @@ def search(id):
     # Must pass in the session_id from the message_store table
     retrieval_qa_chain = build_conversational_retrieval_chain_with_memory(llm, pg_vector_retriever, id)
 
+    print(pg_vector_retriever)
+
     result = retrieval_qa_chain.run(search_query)
 
     return result
 
 @app.route("/test")
 def test():
+    location_retriever = build_column_retriever(database_uri, 'Location', 'description')
 
-    documents = fetch_documents_from_db()
-    
-    retriever = ToyRetriever(documents=documents, k=4)
-
-    t = retriever.invoke("Corpus Christi Women's Clinic")
-
-    print(t)
+    retrieval_qa_chain = build_conversational_retrieval_chain_with_memory(llm, location_retriever, "123")
 
     return "success"
 
