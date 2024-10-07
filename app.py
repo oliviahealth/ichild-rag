@@ -1,4 +1,5 @@
 import os
+import json
 from flask import Flask, request
 from flask_cors import CORS
 from dotenv import load_dotenv
@@ -206,7 +207,7 @@ def test(id):
 
     messages = [
         {"role": "system", "content": "You are a helpful assistant. Use the supplied tools to assist the user."},
-        {"role": "user", "content": "what do hormonal iuds use to prevent pregnancy "}
+        {"role": "user", "content": search_query}
     ]
 
     response = openai.chat.completions.create(
@@ -215,9 +216,22 @@ def test(id):
         tools=tools,
     )
 
-    print(response.choices[0].message)
+    refusal = response.choices[0].message.refusal
 
-    return "success"
+    if(refusal):
+        return "Something went wrong: OpenAi Classification Refusal"
+
+    function_name = response.choices[0].message.tool_calls[0].function.name
+
+    data = None
+    if(function_name == 'search_direct_questions'):
+        data = search_direct_questions(id, search_query)
+    elif(function_name == 'search_location_questions'):
+        data = search_location_questions(id, search_query)
+    else:
+        return "error"
+
+    return data
 
 if __name__ == '__main__':
     app.run(debug=True)
