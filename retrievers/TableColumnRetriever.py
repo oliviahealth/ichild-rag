@@ -32,23 +32,26 @@ class TableColumnRetriever(BaseRetriever):
         top_k_indices = np.argsort(similarities)[-self.k:][::-1]
 
         matching_documents = [self.documents[i] for i in top_k_indices]
+
         return matching_documents
 
 
-def build_table_column_retriever(connection_uri, table_name, column_name, embedding_column_name):
+def build_table_column_retriever(connection_uri, table_name, column_names, embedding_column_name):
     conn = connect(connection_uri)
     cursor = conn.cursor()
 
     # Fetch embeddings and content from the database
-    cursor.execute(f"SELECT {column_name}, {embedding_column_name} FROM {table_name};")
+    columns_str = ', '.join(column_names)
+    cursor.execute(f"SELECT {columns_str}, {embedding_column_name} FROM {table_name};")
 
     rows = cursor.fetchall()
 
     documents = [
-        Document(page_content=row[0])
+        Document(page_content=" ".join([str(row[i]) for i in range(len(column_names))]))
         for row in rows
     ]
-    embeddings = [np.array(ast.literal_eval(row[1])) for row in rows]
+
+    embeddings = [np.array(ast.literal_eval(row[len(column_names)])) for row in rows]
 
     # Initialize OpenAIEmbeddings from LangChain
     openai_embeddings = OpenAIEmbeddings()

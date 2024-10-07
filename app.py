@@ -69,21 +69,25 @@ def search(id):
 
     return result
 
-@app.route("/test")
-def test():
+@app.route("/test/", defaults={"id": None})
+@app.route("/test/<id>")
+def test(id):
     table_column_retriever = build_table_column_retriever(
         connection_uri=database_uri, 
         table_name="location", 
-        column_name="description", 
+        column_names=["name", "address", "city", "state", "country", "zip_code", "latitude", "longitude", "description", "phone", "sunday_hours", "monday_hours", "tuesday_hours", "wednesday_hours", "thursday_hours", "friday_hours", "saturday_hours", "rating", "address_link", "website", "resource_type", "county"], 
         embedding_column_name="embedding"
     )
 
-    query = "Dental care in corpus christi"
-    documents = table_column_retriever.get_relevant_documents(query)
+    search_query = request.args.get("query")
+    # documents = table_column_retriever.get_relevant_documents(query)
 
-    retrieval_qa_chain = build_conversational_retrieval_chain_with_memory(llm, table_column_retriever, id="1231")
+    if not id:
+        id = uuid4()
 
-    result = retrieval_qa_chain.run(query)
+    retrieval_qa_chain = build_conversational_retrieval_chain_with_memory(llm, table_column_retriever, id)
+
+    result = retrieval_qa_chain.run(search_query)
 
     return result
 
