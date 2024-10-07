@@ -14,6 +14,11 @@ from chains.conversational_retrieval_chain_with_memory import build_conversation
 from database.database import db
 from retrievers.TableColumnRetriever import build_table_column_retriever
 
+from functools import partial
+from typing import Literal, TypedDict
+import json
+from openai import OpenAI
+
 load_dotenv()
 
 app = Flask(__name__)
@@ -42,6 +47,46 @@ pg_vector_retriever = pg_vector_store.as_retriever(search_type="mmr")
 
 # Using OpenAI for LLM
 llm = ChatOpenAI()
+
+class QueryType(TypedDict):
+    query_type: Literal["general", "location"]
+    reasoning: str
+
+
+def determine_query_type(client: OpenAI, query: str) -> QueryType:
+    functions = [
+        {
+            "name": "classify_query",
+            "description": "Classify whether a query requires location-based information or general information",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "query_type": {
+                        "type": "string",
+                        "enum": ["general", "location"],
+                        "description": "The type of query - 'location' for queries needing location-based responses, 'general' for other queries"
+                    },
+                    "reasoning": {
+                        "type": "string",
+                        "description": "A brief explanation of why this classification was chosen"
+                    }
+                },
+                "required": ["query_type", "reasoning"]
+            }
+        }
+    ]
+    
+    response = client.chat.completions.create(
+        model="gpt-4o",
+        messages=[
+            {"role": "system", "content": "You are a helpful assistant that classifies user queries."},
+            {"role": "user", "content": f"Classify this query: {query}"}
+        ],
+        functions=functions,
+        function_call={"name": "classify_query"}
+    )
+    
+    return json.loads(response.choices[0].message.function_call.arguments)
 
 # Basic hello world route
 @app.route("/")
@@ -81,6 +126,9 @@ def test(id):
 
     search_query = request.args.get("query")
     # documents = table_column_retriever.get_relevant_documents(query)
+
+    query_classification = determine_query_type(OpenAI(), search_query)
+    print(query_classification)
 
     if not id:
         id = uuid4()
