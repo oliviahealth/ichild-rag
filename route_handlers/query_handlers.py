@@ -46,26 +46,63 @@ def search_location_questions(id, search_query):
 
     Examples of location questions: 'Dental Services in Corpus Christi', 'Where can I get mental health support in Bryan'
     '''
+
+    locations = []
     
     # Creating a TableColumnRetriever to index all of the columns for the location table when retrieving documents
     table_column_retriever = build_table_column_retriever(
         connection_uri=os.getenv('DATABASE_URI'),
         table_name="location",
-        column_names=["name", "address", "city", "state", "country", "zip_code", "latitude", "longitude", "description", "phone", "sunday_hours", "monday_hours",
+        column_names=["id", "name", "address", "city", "state", "country", "zip_code", "latitude", "longitude", "description", "phone", "sunday_hours", "monday_hours",
                       "tuesday_hours", "wednesday_hours", "thursday_hours", "friday_hours", "saturday_hours", "rating", "address_link", "website", "resource_type", "county"],
         embedding_column_name="embedding"
     )
 
-    if not id:
-        id = uuid4()
+    doc_list = table_column_retriever.get_relevant_documents(search_query)
+
+    for doc in doc_list:
+        if not id:
+            id = uuid4()
+
+        doc_id, name, address, city, state, country, zip_code, latitude, longitude, description, phone, sunday_hours, monday_hours, tuesday_hours, wednesday_hours, thursday_hours, friday_hours, saturday_hours, rating, address_link, website, resource_type, county = doc.page_content.split("##")
+
+        unified_address = f"{address}, {city}, {state} {zip_code}"
+        confidence = 1
+        hours_of_operation = [{ "sunday": sunday_hours }, { "monday": monday_hours }, { "tuesday": tuesday_hours }, { "wednesday": wednesday_hours }, { "thursday": thursday_hours }, { "friday": friday_hours }, { "saturday": saturday_hours }]
+        is_saved = False
+        if(latitude and latitude.isnumeric()):
+            latitude = float(latitude.strip())
+        if(longitude and longitude.isnumeric()):
+            longitude = float(longitude.strip())
+        if(rating and rating.isnumeric()):
+            rating = float(rating.strip())
+
+        locations.append({
+            "address": unified_address,
+            "addressLink": address_link,
+            "confidence" : confidence,
+            "description" : description,
+            "hoursOfOperation" : hours_of_operation,
+            "id": doc_id,
+            "isSaved": is_saved,
+            "latitude": latitude,
+            "longitude": longitude,
+            "name": name,
+            "phone": phone,
+            "rating": rating,
+            "website": website
+        })
 
     # Using same conversational retrieval chain with SQL memory just with different retriever
-    retrieval_qa_chain = build_conversational_retrieval_chain_with_memory(
-        llm, table_column_retriever, id)
+    retrieval_qa_chain = build_conversational_retrieval_chain_with_memory(llm, table_column_retriever, id)
 
-    result = retrieval_qa_chain.run(search_query)
+    response = retrieval_qa_chain.run(search_query)
 
-    return result
+    return {
+        "response" : response,
+        "locations" : locations
+    }
+
 
 # Defining list of tools to use with OpenAI function calling
 tools = [

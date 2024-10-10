@@ -47,7 +47,7 @@ def build_table_column_retriever(connection_uri, table_name, column_names, embed
     rows = cursor.fetchall()
 
     documents = [
-        Document(page_content=" ".join([str(row[i]) for i in range(len(column_names))]))
+        Document(page_content="##".join([str(row[i]) for i in range(len(column_names))]))
         for row in rows
     ]
 
