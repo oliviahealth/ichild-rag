@@ -9,7 +9,7 @@ from sklearn.metrics.pairwise import cosine_similarity
 from langchain.embeddings import OpenAIEmbeddings
 
 class TableColumnRetriever(BaseRetriever):
-    """A retriever that retrieves top-k documents based on OpenAI embedding similarity."""
+    """A retriever that retrieves top-k documents for a given table and its columns based on OpenAI embedding similarity."""
 
     documents: List[Document]
     embeddings: List[np.ndarray]

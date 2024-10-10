@@ -35,9 +35,16 @@ langchain.verbose = True
 def hello_world():
     return "<p>Hello, World!</p>"
 
+# Unified search handler for direct and location based queries
 @app.route("/search/", defaults={"id": None})
 @app.route("/search/<id>")
 def unified_search(id):
+    '''
+    Unified search handles direct and location based question.
+    First, use OpenAI function calling to classify query and choose approprite function to invoke (search_direct_questions, search_location_questions)
+    Invoke chosen function and return results to user
+    '''
+    
     search_query = request.args.get("query")
 
     messages = [

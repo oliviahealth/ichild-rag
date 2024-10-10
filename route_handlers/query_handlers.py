@@ -19,8 +19,11 @@ pg_vector_retriever = pg_vector_store.as_retriever(search_type="mmr")
 
 def search_direct_questions(id, search_query):
     '''
-    Example of basic RAG functionality. Route will take in a user query and pass it to a RetrievalQAChain.
-    Final result will be sent to the user.
+    Direct question handler searches OliviaHealth.org knowledge base for most relevant data relating to user query
+    Data is passed to LLM to generate output
+    Memory is updated with user query and answer
+
+    Examples of direct questions: 'Newborn nutritonal advice', 'How do hormonal IUDs prevent pregnancy', 'What is mastitis treated with'
     '''
 
     if not id:
@@ -36,6 +39,15 @@ def search_direct_questions(id, search_query):
     return result
 
 def search_location_questions(id, search_query):
+    '''
+    Location question handler searches Locations table for most relevant locations relating to user query
+    Data is passed to LLM to generate output
+    Memory is updated with user query and answer
+
+    Examples of location questions: 'Dental Services in Corpus Christi', 'Where can I get mental health support in Bryan'
+    '''
+    
+    # Creating a TableColumnRetriever to index all of the columns for the location table when retrieving documents
     table_column_retriever = build_table_column_retriever(
         connection_uri=os.getenv('DATABASE_URI'),
         table_name="location",
@@ -47,6 +59,7 @@ def search_location_questions(id, search_query):
     if not id:
         id = uuid4()
 
+    # Using same conversational retrieval chain with SQL memory just with different retriever
     retrieval_qa_chain = build_conversational_retrieval_chain_with_memory(
         llm, table_column_retriever, id)
 
@@ -54,6 +67,7 @@ def search_location_questions(id, search_query):
 
     return result
 
+# Defining list of tools to use with OpenAI function calling
 tools = [
     {
         "type": 'function',
