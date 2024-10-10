@@ -41,11 +41,15 @@ def search_direct_questions(id, search_query):
 def search_location_questions(id, search_query):
     '''
     Location question handler searches Locations table for most relevant locations relating to user query
-    Data is passed to LLM to generate output
+    Data is converted to JSON array of locations
+    Data is also passed to LLM to generate output
+    Reponse includes the LLM response and the raw json array of locations
     Memory is updated with user query and answer
 
     Examples of location questions: 'Dental Services in Corpus Christi', 'Where can I get mental health support in Bryan'
     '''
+    if not id:
+        id = uuid4()
 
     locations = []
     
@@ -58,12 +62,11 @@ def search_location_questions(id, search_query):
         embedding_column_name="embedding"
     )
 
+    # Get the raw list of relevant locations
     doc_list = table_column_retriever.get_relevant_documents(search_query)
 
+    # loop through the doc_list and for each doc add a json representation in the locations array
     for doc in doc_list:
-        if not id:
-            id = uuid4()
-
         doc_id, name, address, city, state, country, zip_code, latitude, longitude, description, phone, sunday_hours, monday_hours, tuesday_hours, wednesday_hours, thursday_hours, friday_hours, saturday_hours, rating, address_link, website, resource_type, county = doc.page_content.split("##")
 
         unified_address = f"{address}, {city}, {state} {zip_code}"
@@ -96,8 +99,10 @@ def search_location_questions(id, search_query):
     # Using same conversational retrieval chain with SQL memory just with different retriever
     retrieval_qa_chain = build_conversational_retrieval_chain_with_memory(llm, table_column_retriever, id)
 
+    # Get the LLM response
     response = retrieval_qa_chain.run(search_query)
 
+    # Return the LLM response and the JSON
     return {
         "response" : response,
         "locations" : locations
