@@ -1,4 +1,4 @@
-<img src="https://raw.githubusercontent.com/oliviahealth/ichild-rag/refs/heads/main/assets/ichild-banner.png?token=GHSAT0AAAAAACF66JDCLKEKN5TTZWWSXYHEZYK4B3Q" />
+<img src="https://raw.githubusercontent.com/oliviahealth/ichild-rag/refs/heads/main/assets/ichild-banner.png" />
 
 IntelligentCHILD (Community Health Information Local Database) is an semantic search engine indexing curated resources and content for mothers, children and families.
 
@@ -20,7 +20,7 @@ Knowledge Content encompasses the content (including articles, infographics, vid
 
 This implementation of functionality follows the RAG (retrieval-augmented-generation) model of development in which text-based information (such as locations, articles and blogs) are compiled into vectors via an embedding model, stored in a vector database and are retrieved through relevant user queries.
 
-<img src="https://raw.githubusercontent.com/oliviahealth/ichild-rag/refs/heads/main/assets/rag-sequence-diagram.jpg?token=GHSAT0AAAAAACF66JDD5ZZRSMRZE3DH3XUUZYK4TOA" />
+<img src="https://raw.githubusercontent.com/oliviahealth/ichild-rag/refs/heads/main/assets/rag-sequence-diagram.jpg" />
 
 <small>In our implementation, 'Retrieved Documents' comprise location records from a SQL table and documents (including articles, blogs, infographics, videos) from OliviaHealth.org.</small>  
 
